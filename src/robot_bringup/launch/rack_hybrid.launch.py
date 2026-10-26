@@ -15,6 +15,9 @@ def generate_launch_description():
     for executable in ('lidar_localization','navigation_server','path_tracker'):
         ld.add_action(Node(package='robot_navigation',executable=executable,namespace=namespace,
             output='screen',parameters=[common]))
+    # Same JSON conversion code as hardware; Gazebo still consumes the Twist branch.
+    ld.add_action(Node(package='robot_navigation',executable='velocity_json_bridge',namespace=namespace,
+        output='screen',parameters=[common]))
     # Only global costmap host; no old controller, lidar, map alignment or SLAM.
     ld.add_action(Node(package='nav2_planner',executable='planner_server',name='planner_server',output='screen',
         parameters=[str(folder/'costmap_hybrid.yaml'),{'use_sim_time':True}]))

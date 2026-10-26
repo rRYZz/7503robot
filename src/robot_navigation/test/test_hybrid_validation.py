@@ -55,7 +55,7 @@ def test_launch_has_one_real_control_chain_and_no_old_localizer():
     path=ROOT/'src/robot_bringup/launch/rack_hybrid.launch.py'
     spec=importlib.util.spec_from_file_location('hybrid_launch',path);module=importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module);ld=module.generate_launch_description()
-    assert len(ld.entities)==8
+    assert len(ld.entities)==9
     text=path.read_text()
     assert "('lidar_localization','navigation_server','path_tracker')" in text
     assert "'provide_navigation':False" in text and "'use_sim_time':True" in text

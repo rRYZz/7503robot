@@ -33,6 +33,9 @@ def generate_launch_description():
             output='screen',parameters=[{'use_sim_time':False,'config_file':settings,
                                         'interfaces_file':interfaces,
                                         'points_file':LaunchConfiguration('points_file')}]))
+    # 速度 JSON 转换层与导航同启；不连接串口，也不新增 cmd_vel 发布者。
+    ld.add_action(Node(package='robot_navigation',executable='velocity_json_bridge',namespace=namespace,
+        output='screen',parameters=[{'use_sim_time':False,'config_file':settings}]))
     # 只借用 planner_server 托管 global_costmap，不发送其规划动作，且不启动 Nav2 控制器。
     ld.add_action(Node(package='nav2_planner',executable='planner_server',name='planner_server',
         namespace=namespace,output='screen',parameters=[costmap,{'use_sim_time':False}]))

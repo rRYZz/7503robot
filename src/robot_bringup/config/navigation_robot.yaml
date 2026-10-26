@@ -37,6 +37,8 @@ costmap_max_age_sec: 1.5
 
 # 树莓派 ROS 路径跟踪器；输出车体 Twist，ESP32 执行轮速闭环。
 cmd_vel_topic: /cmd_vel
+# JSON 转换出口（std_msgs/String.data），由实机/联合仿真命名空间补全。
+cmd_vel_json_topic: base/cmd_vel_json
 tracking_frequency: 20.0
 tracking_linear_acceleration: 0.3
 tracking_angular_acceleration: 0.5

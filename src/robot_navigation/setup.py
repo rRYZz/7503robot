@@ -9,5 +9,6 @@ setup(name='robot_navigation', version='0.1.0', packages=find_packages(),
           'lidar_localization = robot_navigation.localization:main',
           'navigation_server = robot_navigation.navigation:main',
           'path_tracker = robot_navigation.path_tracker:main',
+          'velocity_json_bridge = robot_navigation.velocity_json_bridge:main',
           'hybrid_evaluator = robot_navigation.hybrid_evaluator:main',
           'chassis_test = robot_navigation.chassis_test:main']})

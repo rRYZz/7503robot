@@ -67,6 +67,10 @@ def load_settings(path):
         raise ValueError('allow_unknown_in_field 必须是布尔值')
     if not isinstance(cfg.get('costmap_topic'),str) or not cfg['costmap_topic']:
         raise ValueError('costmap_topic 必须是完整快照的非空话题名')
+    cfg.setdefault('cmd_vel_json_topic','base/cmd_vel_json')
+    for name in ('cmd_vel_topic','cmd_vel_json_topic'):
+        if not isinstance(cfg.get(name),str) or not cfg[name].strip():
+            raise ValueError(name+' 必须是非空话题名')
     if cfg['frame_id']!='map' or cfg['odom_frame']!='odom' or cfg['base_frame']!='base_link':
         raise ValueError('当前框架统一使用 map/odom/base_link')
     if not isinstance(cfg['laser_frame'],str) or not cfg['laser_frame']:

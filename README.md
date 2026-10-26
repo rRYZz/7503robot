@@ -14,7 +14,7 @@
 
 **状态机向导航发送点位名**，使用 [NavigateToPoint.action](src/mission_interfaces/action/NavigateToPoint.action)：A／B／C／D、DROP_OFF（放置区），实机与联合仿真配置还发送 START_SCAN、FINAL_SCAN。地图、坐标、朝向和路线由导航维护。进退架通过 `Dock` 调用同一导航跟踪器；升降使用 `std_srvs/srv/SetBool`，在线消息为 `{"ready": true, "fault": ""}`。每架到投放点后直接放下，全部搬完后扫描 END。上游通用 mock 的 mission.yaml 保留简化流程；实机使用 mission_robot.yaml，联合仿真使用 mission_rack.yaml。模拟验证不能代替实物搬运验收。
 
-上游原点位接口版曾在树莓派构建并通过147项测试，历史记录见 [构建验证记录（自己看）](docs/自己的记录/构建验证记录（自己看）.md)。本次加入定位、导航与进退架后，在 WSL 完成5包构建，以及511项框架/导航离线测试、61项共享算法测试和1项执行器核心测试；尚未运行本次 Gazebo 全流程或实物验收。
+上游原点位接口版曾在树莓派构建并通过147项测试，历史记录见 [构建验证记录（自己看）](docs/自己的记录/构建验证记录（自己看）.md)。2026-10-10 的导航接入版本在 WSL 完成5包构建，以及511项框架/导航离线测试、61项共享算法测试和1项执行器核心测试；2026-10-26 加入速度 JSON 转换后，4个实机包构建成功，557项框架/导航离线测试通过。未运行此次 Gazebo 全流程或串口/实物验收。
 
 ## 第一次来，先看什么？
 
@@ -112,15 +112,24 @@ ros2 launch robot_bringup simulation.launch.py scenario:=navigation_fail_once
 | 内容 | 位置 |
 |---|---|
 | 雷达定位、导航、进退架、树莓派速度跟踪 | `src/robot_navigation/robot_navigation/` |
+| Twist 转 ESP32 速度 JSON | `src/robot_navigation/robot_navigation/velocity_json_bridge.py` |
 | 导航点位与实测参数 | `src/robot_bringup/config/navigation_points_robot.yaml`、`navigation_robot.yaml` |
 | 点位动作与内部轨迹动作 | `src/mission_interfaces/action/NavigateToPoint.action`、`TrackPath.action` |
 | 场景与共享规划算法 | `navigation/scripts/scene.py`、`grid_planner.py` |
 | Gazebo 举降/反馈代理 | `src/mission_manager/mission_manager/hybrid_execution.py`；联合仿真的 Dock 由实机导航提供 |
 | 一键启动与底盘慢速测试 | `scripts/` |
 
-数据管线：`/scan LaserScan → 雷达位姿 /odom 与 TF → Nav2 costmap → 点位名解析 → 4 连通 Path → TrackPath → 树莓派跟踪器 → /cmd_vel Twist → 队友 ESP32 通信与麦轮伺服`。定位不使用 Gazebo 真值或 IMU；仿真真值仅用于执行反馈与误差评估。
+数据管线：`/scan LaserScan → 雷达位姿 /odom 与 TF → Nav2 costmap → 点位名解析 → 4 连通 Path → TrackPath → 树莓派跟踪器 → /cmd_vel Twist → velocity_json_bridge → base/cmd_vel_json → 队友 ESP32 通信与麦轮伺服`。定位不使用 Gazebo 真值或 IMU；仿真真值仅用于执行反馈与误差评估。
 
 主框架只发点位名与 `Dock ENTER/EXIT`；坐标、载货包络和放置顺序由导航维护。`navigation/path` 是观察用 Path，进退架也交给同一 `TrackPath` 跟踪器；底盘订阅 `/cmd_vel`：`linear.x/y` 是车体系前后/左右速度（m/s），`angular.z` 是逆时针转速（rad/s），默认 20 Hz。ESP32 组负责速度传输、轮速换算、编码器 PID、超时停车和实际反馈。串口协议与固件尚需队友交付。
+
+实机与联合仿真入口现已自动加入速度 JSON 转换节点。使用 JSON 的底盘通信模块订阅 `/team2/robot/base/cmd_vel_json`（仿真为 `/team2/sim/base/cmd_vel_json`），类型 `std_msgs/msg/String`，data 内容为：
+
+```json
+{"linear":{"x":0.10,"y":0.0,"z":0.0},"angular":{"x":0.0,"y":0.0,"z":0.0}}
+```
+
+转换节点逐条接收 `/cmd_vel`，不重发缓存的非零命令；默认断流0.3秒或输入非法即输出全零。它不打开串口，通信组将 JSON 字符串发给 ESP32；ESP32 仍需独立的断流停车和实测反馈。完整数据格式、启动和测试方法见 [导航接入与部署](docs/导航接入与部署.md#esp32-接什么数据)。
 
 主框架在线接口仍只需要 `robot/status` 的 `ready/fault`；导航内部另需 `base/feedback` 的真实停止与平台状态，格式见交接文档。正常举降中的导航 `ready=false` 不代表健康故障，整机汇总应读取导航 `healthy`。
 
